@@ -24,6 +24,8 @@ do
 #        echo "$index ${request[$index]}"
 #    done
 
+    echo "Request: ${request[0]}"
+    Body=""
     if [[ "${request[0]}" =~ "/hello" ]]; then
         Body="<html><h1>Hello world</h></html>"
     fi
