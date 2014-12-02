@@ -2,22 +2,40 @@
 port="50505"
 rm -f /tmp/input; mkfifo /tmp/input; exec 3<> /tmp/input
 rm -f /tmp/output; mkfifo /tmp/output; exec 3<> /tmp/output
-echo "start checker"
 while true
 do
-    res=`ss -ntl | grep -c "$port"`
-    echo $res
-    if [ $res -eq 0 ]; then
-        echo "start server"
-        cat /tmp/output | nc -l -p $port >/tmp/input &
-    fi
-    if read line </tmp/input; then
-        echo $line
-        if [[ "$line" =~ "/hello" ]]; then
-            echo "sometext" > /tmp/output;
+    echo "Start server on port: $port"
+    cat /tmp/output | nc -l -p $port >/tmp/input &
+
+    request=()
+    count=0
+    while read line </tmp/input; do
+        #echo "$count $line" | cat -v
+        request[$count]=$line
+        count=$((count+1))
+        if [[ "$line" == `echo -e "\r\n"` || "$line" == `echo -e "\n"` ]];then
+            break
         fi
-        if [[ "$line" =~ "/echo" ]]; then
-            echo "$line" > /tmp/output;
-        fi
+    done
+
+#    echo "Request items and indexes:"
+#    for index in ${!request[*]}
+#    do
+#        echo "$index ${request[$index]}"
+#    done
+
+    if [[ "${request[0]}" =~ "/hello" ]]; then
+        Body="<html><h1>Hello world</h></html>"
     fi
+    if [[ "${request[0]}" =~ "/echo" ]]; then
+        Body=${request[@]}
+    fi
+
+    if [[ "${request[0]}" =~ "HTTP" ]]; then
+        echo -en "HTTP/1.0 200 OK\nContent-Type: text/html\nContent-Length: ${#Body}\n\n$Body" > /tmp/output;
+    else
+        echo -en "$Body" > /tmp/output;
+    fi
+    killall -q nc
+    killall -q cat
 done
