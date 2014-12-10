@@ -38,6 +38,5 @@ do
     else
         echo -en "$Body" > /tmp/output;
     fi
-    killall -q nc
     killall -q cat
 done
